@@ -25,22 +25,21 @@ brew install camin-mccluskey/tools/td-file
 ```
 td-file/
 ├── config/         # Configuration loading and path resolution
-│   └── config.go
+│   ├── config.go
+│   └── config_test.go
 ├── parser/         # File parsing, writing, and todo tree logic
 │   ├── parser.go
 │   └── parser_test.go
 ├── sync/           # File synchronization (fsnotify, save/reload)
-│   └── sync.go
+│   ├── sync.go
+│   └── sync_test.go
 ├── tui/            # Bubbletea TUI presentation and interaction
-│   └── tui.go
+│   ├── tui.go
+│   └── tui_test.go
 ├── main.go         # Entry point, wires together config, parser, sync, tui
-├── config.yaml     # Example configuration file
-├── README.md       # Project documentation
-├── prd.md          # Product/design requirements
-├── todos.md        # Project work log
-├── refactor-log.md # Refactor progress log
 ├── go.mod
 ├── go.sum
+└── README.md       # Project documentation
 ```
 
 ### Package Responsibilities
