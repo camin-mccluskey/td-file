@@ -5,7 +5,7 @@ A terminal-based todo application with a clean, collapsible tree UI, real-time f
 Built with Go and Bubbletea.
 
 ```sh
-brew install caminmccluskey/homebrew-td-file/td-file
+brew install caminmccluskey/tools/td-file
 ```
 
 ---
