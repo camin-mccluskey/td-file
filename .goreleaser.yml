@@ -29,10 +29,10 @@ archives:
 
 brews:
   - name: td-file
-    homepage: https://github.com/caminmccluskey/td-file
+    homepage: https://github.com/camin-mccluskey/td-file
     description: "A terminal based todo TUI backed by your own todo file. Clean collapsible tree UI, real-time file sync, and robust markdown file support."
     repository:
-      owner: caminmccluskey
+      owner: camin-mccluskey
       name: homebrew-tools # shared tap
       branch: main
     commit_author:

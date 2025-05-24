@@ -34,14 +34,6 @@ type Model struct {
 }
 
 // Modular lipgloss styles for todo states
-var (
-	incompleteStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	completedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
-	pushedStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)
-	cancelledStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Strikethrough(true)
-	cursorStyle     = lipgloss.NewStyle().Background(lipgloss.Color("7")).Foreground(lipgloss.Color("0"))
-	highlightStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true) // bright blue
-)
 
 func (m *Model) refreshTree() {
 	m.roots = buildTreeWithCollapse(m.todos, m.collapsed)
@@ -328,10 +320,11 @@ func (m Model) View() string {
 
 	// Create styles with dynamic width
 	incompleteStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Width(width)
-	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true).Width(width)
+	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Faint(true).Width(width)
 	pushedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true).Width(width)
 	cancelledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Strikethrough(true).Width(width)
 	cursorStyle := lipgloss.NewStyle().Background(lipgloss.Color("7")).Foreground(lipgloss.Color("0")).Width(width)
+	highlightStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true).Width(width)
 
 	border := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(strings.Repeat("─", 40))
 	b.WriteString(border + "\n")
@@ -534,5 +527,6 @@ func StartTUI(todos []parser.Todo, sync *sync.FileSynchronizer, maxID int) error
 			p.Send(reloadMsg{})
 		}
 	}()
-	return p.Start()
+	_, err := p.Run()
+	return err
 }
