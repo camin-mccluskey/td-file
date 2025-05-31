@@ -15,7 +15,9 @@ Some introductory text.
 - [ ] Second block, incomplete
   - [x] Nested complete
     - [ ] Another todo 
-- [ ] This is working too!
+- [x] This is working too!
+- [ ] Secondary block
+  - [ ] Nested todo in secondary block
 :td
 
 ## Some notes
@@ -25,9 +27,4 @@ Some introductory text.
     - Deeply nested bullet
 - Another bullet
 
-:td
-- [ ] Secondary block
-  - [ ] Nested todo in secondary block
-:td
-
-Some trailing text. 
+Some trailing text.
