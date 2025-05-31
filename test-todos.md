@@ -5,7 +5,8 @@ Some introductory text.
 :td
 - [ ] New todo
   - [x] Completed child todo
-    - [ ] Incomplete grandchild
+    - [x] Incomplete grandchild
+    - [ ] Works
   - [ ] Another child
 - [x] Completed root todo
 - [-] Cancelled root todo
@@ -13,8 +14,7 @@ Some introductory text.
 - [>] Pushed root todo
 - [ ] Second block, incomplete
   - [x] Nested complete
-  - [ ] Yes this seems to work
-    - [ ] Cool this works nicely
+    - [ ] Another todo 
 - [ ] This is working too!
 :td
 
@@ -26,6 +26,8 @@ Some introductory text.
 - Another bullet
 
 :td
+- [ ] Secondary block
+  - [ ] Nested todo in secondary block
 :td
 
 Some trailing text. 

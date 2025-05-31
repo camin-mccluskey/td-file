@@ -13,26 +13,6 @@ import (
 	"td-file/tui"
 )
 
-type TodoState int
-
-const (
-	Incomplete TodoState = iota
-	Completed
-	Cancelled
-	Pushed
-)
-
-type Todo struct {
-	ID          int // unique identifier for each todo
-	Text        string
-	State       TodoState
-	IndentLevel int
-	LineNumber  int
-	Children    []*Todo
-	Parent      *Todo
-	Collapsed   bool // for collapsible UI
-}
-
 func main() {
 	var todoFileFlag string
 	flag.StringVar(&todoFileFlag, "todo-file", "", "Path to todo file (overrides config)")
@@ -77,12 +57,12 @@ func main() {
 
 	todos := parser.ParseTodos(blocks)
 
-	sync := sync.NewFileSynchronizer(todoPath)
-	if err := sync.Start(); err != nil {
+	syncer := sync.NewFileSynchronizer(todoPath)
+	if err := syncer.Start(); err != nil {
 		fmt.Println("Error starting file synchronizer:", err)
 		os.Exit(1)
 	}
-	defer sync.Stop()
+	defer syncer.Stop()
 
 	maxID := 0
 	for i := range todos {
@@ -90,7 +70,7 @@ func main() {
 			maxID = todos[i].ID
 		}
 	}
-	if err := tui.StartTUI(todos, sync, maxID); err != nil {
+	if err := tui.StartTUI(todos, syncer, maxID); err != nil {
 		fmt.Println("Error running TUI:", err)
 		os.Exit(1)
 	}

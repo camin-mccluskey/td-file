@@ -9,3 +9,6 @@ test:
 
 lint:
 	go vet ./... 
+
+todo-test:
+	go run main.go -todo-file test-todos.md

@@ -9,12 +9,11 @@ import (
 )
 
 type FileSynchronizer struct {
-	Path      string
-	ReloadCh  chan struct{}
-	SaveCh    chan []parser.Todo
-	stopCh    chan struct{}
-	mu        sync.Mutex
-	lastWrite int64
+	Path     string
+	ReloadCh chan struct{}
+	SaveCh   chan []parser.Todo
+	stopCh   chan struct{}
+	mu       sync.Mutex
 }
 
 func NewFileSynchronizer(path string) *FileSynchronizer {

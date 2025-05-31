@@ -411,6 +411,9 @@ func helpScreen() string {
 	return header + "\n" + sep + "\n" + body.String()
 }
 
+// --- Tree and flatten helpers ---
+// flattenTree, flattenForSync, findParent, findChildIdx, findRootIdx, buildTreeWithCollapse
+
 func buildTreeWithCollapse(flat []parser.Todo, collapsed map[int]bool) []*parser.Todo {
 	treeNodes := make([]*parser.Todo, len(flat))
 	for i := range flat {
@@ -448,16 +451,12 @@ func flattenTree(nodes []*parser.Todo, depth int) []TreeNodeView {
 		n := nodes[i]
 		out = append(out, TreeNodeView{Todo: n, Depth: depth})
 		if !n.Collapsed && len(n.Children) > 0 {
-			children := childrenPtrs(n.Children)
+			children := n.Children
 			childrenFlat := flattenTree(children, depth+1)
 			out = append(out, childrenFlat...)
 		}
 	}
 	return out
-}
-
-func childrenPtrs(children []*parser.Todo) []*parser.Todo {
-	return children
 }
 
 // flattenForSync flattens the tree to a []parser.Todo for file writing
@@ -471,7 +470,7 @@ func (m *Model) flattenForSync() []parser.Todo {
 			t.Children = nil
 			out = append(out, t)
 			if len(n.Children) > 0 {
-				children := childrenPtrs(n.Children)
+				children := n.Children
 				walk(children, indent+2)
 			}
 		}
@@ -485,7 +484,7 @@ func (m *Model) findParent(child *parser.Todo) *parser.Todo {
 	var walk func(nodes []*parser.Todo)
 	walk = func(nodes []*parser.Todo) {
 		for _, n := range nodes {
-			children := childrenPtrs(n.Children)
+			children := n.Children
 			for _, c := range children {
 				if c == child {
 					parent = n
