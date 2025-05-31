@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -33,14 +34,25 @@ type Todo struct {
 }
 
 func main() {
+	var todoFileFlag string
+	flag.StringVar(&todoFileFlag, "todo-file", "", "Path to todo file (overrides config)")
+	flag.StringVar(&todoFileFlag, "f", "", "Path to todo file (shorthand, overrides config)")
+	flag.Parse()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	todoPath, err := config.ResolveTodoPath(cfg)
-	if err != nil {
-		log.Fatalf("Failed to resolve todo path: %v", err)
+	var todoPath string
+	if todoFileFlag != "" {
+		todoPath = todoFileFlag
+		fmt.Printf("Using todo file from flag: %s\n", todoPath)
+	} else {
+		todoPath, err = config.ResolveTodoPath(cfg)
+		if err != nil {
+			log.Fatalf("Failed to resolve todo path: %v", err)
+		}
 	}
 
 	// Ensure the todo directory exists

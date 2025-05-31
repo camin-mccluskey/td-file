@@ -200,29 +200,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case 'a':
 				if len(m.flat) > 0 {
-					cur := m.flat[m.cursor]
+					flat := m.flattenForSync()
+					curIdx := m.cursor
+					curIndent := flat[curIdx].IndentLevel
+					lastDescendantIdx := curIdx
+					for i := curIdx + 1; i < len(flat); i++ {
+						if flat[i].IndentLevel <= curIndent {
+							break
+						}
+						lastDescendantIdx = i
+					}
 					newTodo := parser.Todo{
 						ID:          m.nextID,
 						Text:        "New todo",
 						State:       parser.Incomplete,
-						IndentLevel: cur.Todo.IndentLevel,
+						IndentLevel: curIndent,
 					}
 					m.nextID++
-					if cur.Depth == 0 {
-						m.roots = parser.AddSibling(m.roots, cur.Todo, newTodo)
-					} else {
-						parent := m.findParent(cur.Todo)
-						if parent != nil {
-							idx := m.findChildIdx(parent, cur.Todo)
-							if idx >= 0 {
-								parser.AddSibling(parent.Children, cur.Todo, newTodo)
-							}
-						}
-					}
-					m.todos = m.flattenForSync()
+					// Insert after last descendant
+					flat = append(flat[:lastDescendantIdx+1], append([]parser.Todo{newTodo}, flat[lastDescendantIdx+1:]...)...)
+					m.todos = flat
 					m.refreshTree()
 					m.sync.SaveCh <- m.todos
-					m.cursor++
+					m.cursor = lastDescendantIdx + 1
 				} else {
 					m.todos = []parser.Todo{{ID: m.nextID, Text: "New todo", State: parser.Incomplete}}
 					m.nextID++
