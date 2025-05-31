@@ -158,3 +158,108 @@ func TestModel_HighlightFeature(t *testing.T) {
 	}
 	// (Color check is not trivial in test, but we check for asterisk and text)
 }
+
+func TestRegression_AddRootTodoPreservesAllTodos(t *testing.T) {
+	fs := &sync.FileSynchronizer{
+		Path:     "dummy.md",
+		ReloadCh: make(chan struct{}, 1),
+		SaveCh:   make(chan []parser.Todo, 10),
+	}
+	// Two root todos, one with a child
+	flat := []parser.Todo{
+		{ID: 1, Text: "A", IndentLevel: 0},
+		{ID: 2, Text: "B", IndentLevel: 2},
+		{ID: 3, Text: "C", IndentLevel: 0},
+	}
+	m := Model{
+		todos:     flat,
+		collapsed: make(map[int]bool),
+		sync:      fs,
+		nextID:    4,
+	}
+	m.refreshTree()
+	// Select C, add a new root todo after C
+	m.cursor = 2
+	model, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m2 := model.(Model)
+	m2.refreshTree()
+	if len(m2.roots) != 3 {
+		t.Fatalf("expected 3 root todos, got %d", len(m2.roots))
+	}
+	if len(m2.roots[0].Children) != 1 || m2.roots[0].Children[0].Text != "B" {
+		t.Fatalf("expected A to have child B, got %+v", m2.roots[0].Children)
+	}
+}
+
+func TestRegression_AddSiblingDoesNotStealChildren(t *testing.T) {
+	fs := &sync.FileSynchronizer{
+		Path:     "dummy.md",
+		ReloadCh: make(chan struct{}, 1),
+		SaveCh:   make(chan []parser.Todo, 10),
+	}
+	// A with children B, C; D is another root
+	flat := []parser.Todo{
+		{ID: 1, Text: "A", IndentLevel: 0},
+		{ID: 2, Text: "B", IndentLevel: 2},
+		{ID: 3, Text: "C", IndentLevel: 2},
+		{ID: 4, Text: "D", IndentLevel: 0},
+	}
+	m := Model{
+		todos:     flat,
+		collapsed: make(map[int]bool),
+		sync:      fs,
+		nextID:    5,
+	}
+	m.refreshTree()
+	// Select A, add a sibling after A
+	m.cursor = 0
+	model, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m2 := model.(Model)
+	m2.refreshTree()
+	if len(m2.roots) != 3 {
+		t.Fatalf("expected 3 root todos, got %d", len(m2.roots))
+	}
+	if len(m2.roots[0].Children) != 2 {
+		t.Fatalf("expected A to have 2 children, got %d", len(m2.roots[0].Children))
+	}
+	if m2.roots[1].Text != "New todo" {
+		t.Fatalf("expected new sibling after A, got %+v", m2.roots[1])
+	}
+	if len(m2.roots[1].Children) != 0 {
+		t.Fatalf("expected new sibling to have no children, got %+v", m2.roots[1].Children)
+	}
+}
+
+func TestRegression_AddChildOnlyAffectsParent(t *testing.T) {
+	fs := &sync.FileSynchronizer{
+		Path:     "dummy.md",
+		ReloadCh: make(chan struct{}, 1),
+		SaveCh:   make(chan []parser.Todo, 10),
+	}
+	// A and B are roots
+	flat := []parser.Todo{
+		{ID: 1, Text: "A", IndentLevel: 0},
+		{ID: 2, Text: "B", IndentLevel: 0},
+	}
+	m := Model{
+		todos:     flat,
+		collapsed: make(map[int]bool),
+		sync:      fs,
+		nextID:    3,
+	}
+	m.refreshTree()
+	// Select A, add a child
+	m.cursor = 0
+	model, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'A'}})
+	m2 := model.(Model)
+	m2.refreshTree()
+	if len(m2.roots) != 2 {
+		t.Fatalf("expected 2 root todos, got %d", len(m2.roots))
+	}
+	if len(m2.roots[0].Children) != 1 {
+		t.Fatalf("expected A to have 1 child, got %d", len(m2.roots[0].Children))
+	}
+	if m2.roots[1].Text != "B" {
+		t.Fatalf("expected B to remain as root, got %+v", m2.roots[1])
+	}
+}

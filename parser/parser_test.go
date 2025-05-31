@@ -2,6 +2,7 @@ package parser_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -294,4 +295,125 @@ func TestHighlightFeature(t *testing.T) {
 		// Simulate writing and re-parsing
 		// (This will require WriteTodosToFile to persist highlight state)
 	})
+}
+
+func TestWriteAndReadNestedTodos(t *testing.T) {
+	tmpfile := t.TempDir() + "/todos.md"
+	// Simulate a :td block with nested todos
+	initial := []string{
+		":td",
+		"- [ ] Parent",
+		"  - [ ] Child 1",
+		"    - [ ] Grandchild 1.1",
+		"  - [ ] Child 2",
+		":td",
+	}
+	if err := os.WriteFile(tmpfile, []byte(strings.Join(initial, "\n")), 0644); err != nil {
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+
+	blocks, err := parser.ExtractTdBlocks(tmpfile)
+	if err != nil {
+		t.Fatalf("ExtractTdBlocks failed: %v", err)
+	}
+	todos := parser.ParseTodos(blocks)
+	// Write back to file
+	parser.WriteTodosToFile(tmpfile, todos)
+
+	// Read again
+	blocks2, err := parser.ExtractTdBlocks(tmpfile)
+	if err != nil {
+		t.Fatalf("ExtractTdBlocks (2) failed: %v", err)
+	}
+	todos2 := parser.ParseTodos(blocks2)
+
+	// Build tree and check structure
+	roots := parser.BuildTree(todos2)
+	if len(roots) != 1 {
+		t.Fatalf("expected 1 root, got %d", len(roots))
+	}
+	parent := roots[0]
+	if len(parent.Children) != 2 {
+		t.Fatalf("expected 2 children, got %d", len(parent.Children))
+	}
+	if parent.Children[0].Text != "Child 1" || parent.Children[1].Text != "Child 2" {
+		t.Errorf("children text = %q, %q", parent.Children[0].Text, parent.Children[1].Text)
+	}
+	if len(parent.Children[0].Children) != 1 {
+		t.Fatalf("expected 1 grandchild, got %d", len(parent.Children[0].Children))
+	}
+	if parent.Children[0].Children[0].Text != "Grandchild 1.1" {
+		t.Errorf("grandchild text = %q, want 'Grandchild 1.1'", parent.Children[0].Children[0].Text)
+	}
+}
+
+func TestCompleteParentAndPreserveChildren(t *testing.T) {
+	tmpfile := t.TempDir() + "/todos.md"
+	initial := []string{
+		":td",
+		"- [ ] Parent",
+		"  - [ ] Child 1",
+		"    - [ ] Grandchild 1.1",
+		"  - [ ] Child 2",
+		":td",
+	}
+	if err := os.WriteFile(tmpfile, []byte(strings.Join(initial, "\n")), 0644); err != nil {
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+
+	blocks, err := parser.ExtractTdBlocks(tmpfile)
+	if err != nil {
+		t.Fatalf("ExtractTdBlocks failed: %v", err)
+	}
+	todos := parser.ParseTodos(blocks)
+	roots := parser.BuildTree(todos)
+	if len(roots) != 1 {
+		t.Fatalf("expected 1 root, got %d", len(roots))
+	}
+	parent := roots[0]
+	parser.SetState(parent, parser.Completed)
+
+	// Flatten and write back to file
+	var flat []parser.Todo
+	var walk func(nodes []*parser.Todo, indent int)
+	walk = func(nodes []*parser.Todo, indent int) {
+		for _, n := range nodes {
+			t := *n
+			t.IndentLevel = indent
+			t.Children = nil
+			flat = append(flat, t)
+			if len(n.Children) > 0 {
+				walk(n.Children, indent+2)
+			}
+		}
+	}
+	walk(roots, 0)
+	parser.WriteTodosToFile(tmpfile, flat)
+
+	// Read again
+	blocks2, err := parser.ExtractTdBlocks(tmpfile)
+	if err != nil {
+		t.Fatalf("ExtractTdBlocks (2) failed: %v", err)
+	}
+	todos2 := parser.ParseTodos(blocks2)
+	roots2 := parser.BuildTree(todos2)
+	if len(roots2) != 1 {
+		t.Fatalf("expected 1 root after complete, got %d", len(roots2))
+	}
+	parent2 := roots2[0]
+	if parent2.State != parser.Completed {
+		t.Errorf("parent state = %v, want Completed", parent2.State)
+	}
+	if len(parent2.Children) != 2 {
+		t.Fatalf("expected 2 children after complete, got %d", len(parent2.Children))
+	}
+	if parent2.Children[0].Text != "Child 1" || parent2.Children[1].Text != "Child 2" {
+		t.Errorf("children text after complete = %q, %q", parent2.Children[0].Text, parent2.Children[1].Text)
+	}
+	if len(parent2.Children[0].Children) != 1 {
+		t.Fatalf("expected 1 grandchild after complete, got %d", len(parent2.Children[0].Children))
+	}
+	if parent2.Children[0].Children[0].Text != "Grandchild 1.1" {
+		t.Errorf("grandchild text after complete = %q, want 'Grandchild 1.1'", parent2.Children[0].Children[0].Text)
+	}
 }

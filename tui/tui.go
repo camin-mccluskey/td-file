@@ -200,29 +200,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case 'a':
 				if len(m.flat) > 0 {
-					cur := m.flat[m.cursor]
+					flat := m.flattenForSync()
+					curIdx := m.cursor
+					curIndent := flat[curIdx].IndentLevel
+					lastDescendantIdx := curIdx
+					for i := curIdx + 1; i < len(flat); i++ {
+						if flat[i].IndentLevel <= curIndent {
+							break
+						}
+						lastDescendantIdx = i
+					}
 					newTodo := parser.Todo{
 						ID:          m.nextID,
 						Text:        "New todo",
 						State:       parser.Incomplete,
-						IndentLevel: cur.Todo.IndentLevel,
+						IndentLevel: curIndent,
 					}
 					m.nextID++
-					if cur.Depth == 0 {
-						m.roots = parser.AddSibling(m.roots, cur.Todo, newTodo)
-					} else {
-						parent := m.findParent(cur.Todo)
-						if parent != nil {
-							idx := m.findChildIdx(parent, cur.Todo)
-							if idx >= 0 {
-								parser.AddSibling(parent.Children, cur.Todo, newTodo)
-							}
-						}
-					}
-					m.todos = m.flattenForSync()
+					// Insert after last descendant
+					flat = append(flat[:lastDescendantIdx+1], append([]parser.Todo{newTodo}, flat[lastDescendantIdx+1:]...)...)
+					m.todos = flat
 					m.refreshTree()
 					m.sync.SaveCh <- m.todos
-					m.cursor++
+					m.cursor = lastDescendantIdx + 1
 				} else {
 					m.todos = []parser.Todo{{ID: m.nextID, Text: "New todo", State: parser.Incomplete}}
 					m.nextID++
@@ -411,6 +411,9 @@ func helpScreen() string {
 	return header + "\n" + sep + "\n" + body.String()
 }
 
+// --- Tree and flatten helpers ---
+// flattenTree, flattenForSync, findParent, findChildIdx, findRootIdx, buildTreeWithCollapse
+
 func buildTreeWithCollapse(flat []parser.Todo, collapsed map[int]bool) []*parser.Todo {
 	treeNodes := make([]*parser.Todo, len(flat))
 	for i := range flat {
@@ -448,16 +451,12 @@ func flattenTree(nodes []*parser.Todo, depth int) []TreeNodeView {
 		n := nodes[i]
 		out = append(out, TreeNodeView{Todo: n, Depth: depth})
 		if !n.Collapsed && len(n.Children) > 0 {
-			children := childrenPtrs(n.Children)
+			children := n.Children
 			childrenFlat := flattenTree(children, depth+1)
 			out = append(out, childrenFlat...)
 		}
 	}
 	return out
-}
-
-func childrenPtrs(children []*parser.Todo) []*parser.Todo {
-	return children
 }
 
 // flattenForSync flattens the tree to a []parser.Todo for file writing
@@ -471,7 +470,7 @@ func (m *Model) flattenForSync() []parser.Todo {
 			t.Children = nil
 			out = append(out, t)
 			if len(n.Children) > 0 {
-				children := childrenPtrs(n.Children)
+				children := n.Children
 				walk(children, indent+2)
 			}
 		}
@@ -485,7 +484,7 @@ func (m *Model) findParent(child *parser.Todo) *parser.Todo {
 	var walk func(nodes []*parser.Todo)
 	walk = func(nodes []*parser.Todo) {
 		for _, n := range nodes {
-			children := childrenPtrs(n.Children)
+			children := n.Children
 			for _, c := range children {
 				if c == child {
 					parent = n

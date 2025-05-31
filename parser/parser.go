@@ -241,6 +241,9 @@ func WriteTodosToFile(path string, todos []Todo) {
 	os.WriteFile(path, []byte(strings.Join(out, "\n")), 0644)
 }
 
+// --- Tree mutation helpers ---
+// AddSibling, AddChild, DeleteNode, BuildTree, SetState, SetHighlight
+
 // Add mutation helpers for todos
 func SetState(todo *Todo, state TodoState) {
 	todo.State = state
